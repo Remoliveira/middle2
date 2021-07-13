@@ -10,19 +10,86 @@ app.use(cors());
 const users = [];
 
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  
+  const { username } = request.headers;
+
+  const user = users.find((user) => user.username === username);
+
+  if(!user){
+    return response.status(404).json({error:" user not found"});
+  }
+  request.user = user;
+  return next();
+
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  
+  const { user } = request;
+  
+  console.log(user.todos.length)
+  console.log(user.pro)
+
+  if(user.pro === true){
+    return next()
+  }
+
+  if((user.pro === false && user.todos.length < 10)){
+    
+    return next();
+  }
+
+  if(user.pro === false && user.todos.length >= 9){
+    console.log("here")
+    return response.status(403).json({error:"free limit achieved"});
+  }
+
+
+
+
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const user = users.find((user) => user.username === username);
+  if(!user){
+    return response.status(404).json({error:" user not found"});
+  }
+
+  const isUuid = validate(id)
+  const uuid = user.todos.find((todo) => todo.id === id);
+  
+  if(!isUuid){
+    return response.status(400).json({error:" id invalid"});
+
+  }
+
+  if(!uuid){
+    return response.status(404).json({error:" user not found"});
+
+  }
+
+  request.todo = uuid;
+  request.user = user;
+  return next()
+
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  
+  const { id } = request.params;
+
+  // const user = users.find((user))
+  const userid = users.find((userid) => userid.id === id);
+
+  if(!userid){
+    return response.status(404).json({error:"not found"});
+  }
+  request.user = userid;
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -41,7 +108,7 @@ app.post('/users', (request, response) => {
     pro: false,
     todos: []
   };
-
+  
   users.push(user);
 
   return response.status(201).json(user);
@@ -67,7 +134,7 @@ app.patch('/users/:id/pro', findUserById, (request, response) => {
 
 app.get('/todos', checksExistsUserAccount, (request, response) => {
   const { user } = request;
-
+ 
   return response.json(user.todos);
 });
 
@@ -84,7 +151,7 @@ app.post('/todos', checksExistsUserAccount, checksCreateTodosUserAvailability, (
   };
 
   user.todos.push(newTodo);
-
+  
   return response.status(201).json(newTodo);
 });
 
